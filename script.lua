@@ -17,7 +17,7 @@ local Tabs = {
     Support = Window:AddTab({ Title = "Support", Icon = "heart" })
 }
 
--- [ إيقاف نوافذ الشراء الإجباري ]
+-- [ 1. تعطيل وإلغاء إحداثيات الشراء لمنع ظهور النافذة ]
 local MarketplaceService = game:GetService("MarketplaceService")
 pcall(function()
     MarketplaceService.PromptGamePassPurchaseRequested:Connect(function() return false end)
@@ -96,61 +96,49 @@ FlyToggle:OnChanged(function(Value)
     end
 end)
 
--- [ TAB: AUTO FARM - الانتقال لأعلى مرحلة (+150K Wins) ]
-local AutoWalkToggle = Tabs.AutoFarm:AddToggle("AutoWalkSpeed", { Title = "Auto Walk (Gain Speed)", Default = false })
-AutoWalkToggle:OnChanged(function(Value)
-    _G.AutoWalk = Value
-    task.spawn(function()
-        while _G.AutoWalk do
-            task.wait(0.05)
-            pcall(function()
-                local hum = game.Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-                if hum then
-                    hum:Move(Vector3.new(0, 0, -1), true)
-                end
-            end)
-        end
-    end)
-end)
-
-local InstantWinToggle = Tabs.AutoFarm:AddToggle("InstantWin", { Title = "INSTANT WIN (+150K Wins Pad)", Default = false })
+-- [ TAB: AUTO FARM - Instant Win +150K Wins ]
+local InstantWinToggle = Tabs.AutoFarm:AddToggle("InstantWin", { Title = "INSTANT WIN (+150K Wins)", Default = false })
 InstantWinToggle:OnChanged(function(Value)
     _G.InstantWin = Value
     task.spawn(function()
         while _G.InstantWin do
-            task.wait(0.05)
+            task.wait(0.1)
             pcall(function()
                 local player = game.Players.LocalPlayer
                 local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
                 if not hrp then return end
 
-                -- البحث عن أبعد وأعلى منصة فوز (آخر مرحلة +150K Wins)
-                local maxWinPad = nil
-                local maxDist = -math.huge
-
+                local targetPad = nil
+                
+                -- البحث المباشر عن منصة 150K Wins
                 for _, obj in pairs(workspace:GetDescendants()) do
-                    if obj:IsA("BasePart") and (obj.Name:lower():find("win") or obj.Name:lower():find("trophy") or obj.Name:lower():find("endpad")) then
-                        -- اختيار أعلى منصة من حيث الارتفاع أو المسافة
-                        local posVal = obj.Position.Z + obj.Position.Y
-                        if posVal > maxDist then
-                            maxDist = posVal
-                            maxWinPad = obj
+                    if obj:IsA("BasePart") then
+                        if obj.Name:find("150K") or (obj.Parent and obj.Parent.Name:find("150K")) or obj.Name:lower() == "win" then
+                            targetPad = obj
+                            break
                         end
                     end
                 end
 
-                if maxWinPad then
-                    hrp.CFrame = maxWinPad.CFrame + Vector3.new(0, 3, 0)
-                    if firetouchinterest then
-                        firetouchinterest(hrp, maxWinPad, 0)
-                        task.wait(0.05)
-                        firetouchinterest(hrp, maxWinPad, 1)
+                -- في حال عدم العثور عليها بالاسم، يتم اختيار المنصة الأكثر ارتفاعاً (أبعد منصة)
+                if not targetPad then
+                    local maxY = -math.huge
+                    for _, obj in pairs(workspace:GetDescendants()) do
+                        if obj:IsA("BasePart") and (obj.Name:lower():find("win") or obj.Name:lower():find("end")) then
+                            if obj.Position.Y > maxY then
+                                maxY = obj.Position.Y
+                                targetPad = obj
+                            end
+                        end
                     end
-                    
-                    task.wait(0.1)
-                    local spawn = workspace:FindFirstChild("SpawnLocation", true)
-                    if spawn then
-                        hrp.CFrame = spawn.CFrame + Vector3.new(0, 3, 0)
+                end
+
+                if targetPad then
+                    hrp.CFrame = targetPad.CFrame + Vector3.new(0, 3, 0)
+                    if firetouchinterest then
+                        firetouchinterest(hrp, targetPad, 0)
+                        task.wait(0.05)
+                        firetouchinterest(hrp, targetPad, 1)
                     end
                 end
             end)
@@ -180,45 +168,29 @@ GodToggle:OnChanged(function(Value)
     end)
 end)
 
--- [ TAB: GAMEPASSES ]
-Tabs.Gamepasses:AddSection("Treadmills Bypass & Boost")
+-- [ TAB: GAMEPASSES - سرعة الآلات الوهمية بدون طلب شراء ]
+Tabs.Gamepasses:AddSection("Treadmills Speed Boost")
 
-local AutoDiamondTreadmill = Tabs.Gamepasses:AddToggle("AutoDiamond", { Title = "Auto Diamond Treadmill Speed (X150)", Default = false })
-AutoDiamondTreadmill:OnChanged(function(Value)
-    _G.AutoDiamond = Value
+local CustomSpeedVal = 16
+Tabs.Gamepasses:AddInput("CustomSpeedInput", {
+    Title = "Treadmill Speed Multiplier",
+    Default = "150",
+    Numeric = true,
+    Callback = function(Value)
+        CustomSpeedVal = tonumber(Value) or 16
+    end
+})
+
+local FakeTreadmillToggle = Tabs.Gamepasses:AddToggle("FakeTreadmills", { Title = "Enable Treadmill Speed Bypass", Default = false })
+FakeTreadmillToggle:OnChanged(function(Value)
+    _G.FakeTreadmills = Value
     task.spawn(function()
-        while _G.AutoDiamond do
+        while _G.FakeTreadmills do
             task.wait(0.1)
             pcall(function()
-                local hrp = game.Players.LocalPlayer.Character.HumanoidRootPart
-                for _, v in pairs(workspace:GetDescendants()) do
-                    if v:IsA("BasePart") and (v.Name:find("Diamond") or (v.Parent and v.Parent.Name:find("Diamond"))) then
-                        if firetouchinterest then
-                            firetouchinterest(hrp, v, 0)
-                            firetouchinterest(hrp, v, 1)
-                        end
-                    end
-                end
-            end)
-        end
-    end)
-end)
-
-local AutoGoldTreadmill = Tabs.Gamepasses:AddToggle("AutoGold", { Title = "Auto Gold Treadmill Speed (X50)", Default = false })
-AutoGoldTreadmill:OnChanged(function(Value)
-    _G.AutoGold = Value
-    task.spawn(function()
-        while _G.AutoGold do
-            task.wait(0.1)
-            pcall(function()
-                local hrp = game.Players.LocalPlayer.Character.HumanoidRootPart
-                for _, v in pairs(workspace:GetDescendants()) do
-                    if v:IsA("BasePart") and (v.Name:find("Gold") or (v.Parent and v.Parent.Name:find("Gold"))) then
-                        if firetouchinterest then
-                            firetouchinterest(hrp, v, 0)
-                            firetouchinterest(hrp, v, 1)
-                        end
-                    end
+                local hum = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+                if hum then
+                    hum.WalkSpeed = CustomSpeedVal
                 end
             end)
         end
