@@ -17,33 +17,14 @@ local Tabs = {
     Support = Window:AddTab({ Title = "Support", Icon = "heart" })
 }
 
--- [ 1. ثغرة فتح المشايات وحذف حواجز الشراء ]
-local MarketplaceService = game:GetService("MarketplaceService")
-
--- إلغاء طلب الشراء فورياً
-pcall(function()
-    MarketplaceService.PromptGamePassPurchaseRequested:Connect(function() return false end)
-    MarketplaceService.PromptPurchaseRequested:Connect(function() return false end)
-end)
-
--- خدعة تزييف الملكية لتجاوز فحص السيرفر UserOwnsGamePassAsync
-local oldUserOwns = MarketplaceService.UserOwnsGamePassAsync
-hookfunction(MarketplaceService.UserOwnsGamePassAsync, function(self, userId, gamepassId)
-    return true
-end)
-
--- حذف حواجز VIP الملموسة محلياً لفتح الطريق للآلات
+-- [ إغلاق وحذف أي نافذة شراء تظهر على الشاشة فوراً ]
+local CoreGui = game:GetService("CoreGui")
 task.spawn(function()
-    while task.wait(0.5) do
+    while task.wait(0.1) do
         pcall(function()
-            for _, obj in pairs(workspace:GetDescendants()) do
-                if obj:IsA("BasePart") then
-                    local name = obj.Name:lower()
-                    if name:find("vip") or name:find("pass") or name:find("prompt") or name:find("door") or name:find("barrier") then
-                        obj.CanCollide = false
-                        obj.Transparency = 1
-                    end
-                end
+            local purchasePrompt = CoreGui:FindFirstChild("PurchasePromptApp") or game.Players.LocalPlayer.PlayerGui:FindFirstChild("PurchasePromptApp")
+            if purchasePrompt then
+                purchasePrompt.Enabled = false
             end
         end)
     end
@@ -121,13 +102,13 @@ FlyToggle:OnChanged(function(Value)
     end
 end)
 
--- [ TAB: AUTO FARM - Instant Win + Anti-Kill ]
-local InstantWinToggle = Tabs.AutoFarm:AddToggle("InstantWin", { Title = "INSTANT WIN (Auto Farm)", Default = false })
+-- [ TAB: AUTO FARM - Instant Win + Godmode ]
+local InstantWinToggle = Tabs.AutoFarm:AddToggle("InstantWin", { Title = "INSTANT WIN (+150K Wins + Anti-Kill)", Default = false })
 
 InstantWinToggle:OnChanged(function(Value)
     _G.InstantWin = Value
 
-    -- حماية من الموت والوحش
+    -- حماية عدم الموت والوحش
     task.spawn(function()
         while _G.InstantWin do
             task.wait(0.1)
@@ -159,7 +140,7 @@ InstantWinToggle:OnChanged(function(Value)
 
                 local winPad = nil
                 for _, v in pairs(workspace:GetDescendants()) do
-                    if v:IsA("BasePart") and (v.Name:lower():find("win") or v.Name:lower():find("endpad")) then
+                    if v:IsA("BasePart") and (v.Name:lower():find("win") or v.Name:lower():find("endpad") or v.Name:find("150K")) then
                         if not v:IsDescendantOf(player.Character) then
                             winPad = v
                             break
@@ -180,24 +161,34 @@ InstantWinToggle:OnChanged(function(Value)
     end)
 end)
 
--- [ TAB: GAMEPASSES - زر التفعيل المباشر للقيم باس ]
-Tabs.Gamepasses:AddSection("Gamepass Unlocker")
+-- [ TAB: GAMEPASSES - تفعيل سرعة المشايات وتجاوز نافذة الشراء ]
+Tabs.Gamepasses:AddSection("Treadmills Bypass")
 
-Tabs.Gamepasses:AddButton({
-    Title = "Unlock All Treadmills & VIP",
-    Callback = function()
-        pcall(function()
-            for _, v in pairs(workspace:GetDescendants()) do
-                if v:IsA("BasePart") then
-                    local name = v.Name:lower()
-                    if name:find("vip") or name:find("treadmill") or name:find("gate") or name:find("door") then
-                        v.CanCollide = false
-                        v.Transparency = 1
-                    end
-                end
-            end
-        end)
+local SpeedBoostValue = 250
+Tabs.Gamepasses:AddInput("SpeedInput", {
+    Title = "Custom Speed (Like Gamepass)",
+    Default = "250",
+    Numeric = true,
+    Callback = function(Value)
+        SpeedBoostValue = tonumber(Value) or 250
     end
 })
+
+local EnableTreadmillBypass = Tabs.Gamepasses:AddToggle("TreadmillBypass", { Title = "Bypass Treadmills & Auto Speed", Default = false })
+EnableTreadmillBypass:OnChanged(function(Value)
+    _G.TreadmillBypass = Value
+    task.spawn(function()
+        while _G.TreadmillBypass do
+            task.wait(0.05)
+            pcall(function()
+                local player = game.Players.LocalPlayer
+                local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+                if hum then
+                    hum.WalkSpeed = SpeedBoostValue
+                end
+            end)
+        end
+    end)
+end)
 
 Window:SelectTab(1)
