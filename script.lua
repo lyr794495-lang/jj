@@ -17,11 +17,36 @@ local Tabs = {
     Support = Window:AddTab({ Title = "Support", Icon = "heart" })
 }
 
--- [ 1. تعطيل وإلغاء إحداثيات الشراء لمنع ظهور النافذة ]
+-- [ 1. ثغرة فتح المشايات وحذف حواجز الشراء ]
 local MarketplaceService = game:GetService("MarketplaceService")
+
+-- إلغاء طلب الشراء فورياً
 pcall(function()
     MarketplaceService.PromptGamePassPurchaseRequested:Connect(function() return false end)
     MarketplaceService.PromptPurchaseRequested:Connect(function() return false end)
+end)
+
+-- خدعة تزييف الملكية لتجاوز فحص السيرفر UserOwnsGamePassAsync
+local oldUserOwns = MarketplaceService.UserOwnsGamePassAsync
+hookfunction(MarketplaceService.UserOwnsGamePassAsync, function(self, userId, gamepassId)
+    return true
+end)
+
+-- حذف حواجز VIP الملموسة محلياً لفتح الطريق للآلات
+task.spawn(function()
+    while task.wait(0.5) do
+        pcall(function()
+            for _, obj in pairs(workspace:GetDescendants()) do
+                if obj:IsA("BasePart") then
+                    local name = obj.Name:lower()
+                    if name:find("vip") or name:find("pass") or name:find("prompt") or name:find("door") or name:find("barrier") then
+                        obj.CanCollide = false
+                        obj.Transparency = 1
+                    end
+                end
+            end
+        end)
+    end
 end)
 
 -- [ TAB: MAIN ]
@@ -96,105 +121,83 @@ FlyToggle:OnChanged(function(Value)
     end
 end)
 
--- [ TAB: AUTO FARM - Instant Win +150K Wins ]
-local InstantWinToggle = Tabs.AutoFarm:AddToggle("InstantWin", { Title = "INSTANT WIN (+150K Wins)", Default = false })
+-- [ TAB: AUTO FARM - Instant Win + Anti-Kill ]
+local InstantWinToggle = Tabs.AutoFarm:AddToggle("InstantWin", { Title = "INSTANT WIN (Auto Farm)", Default = false })
+
 InstantWinToggle:OnChanged(function(Value)
     _G.InstantWin = Value
+
+    -- حماية من الموت والوحش
     task.spawn(function()
         while _G.InstantWin do
             task.wait(0.1)
             pcall(function()
-                local player = game.Players.LocalPlayer
-                local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-                if not hrp then return end
-
-                local targetPad = nil
-                
-                -- البحث المباشر عن منصة 150K Wins
-                for _, obj in pairs(workspace:GetDescendants()) do
-                    if obj:IsA("BasePart") then
-                        if obj.Name:find("150K") or (obj.Parent and obj.Parent.Name:find("150K")) or obj.Name:lower() == "win" then
-                            targetPad = obj
-                            break
-                        end
-                    end
-                end
-
-                -- في حال عدم العثور عليها بالاسم، يتم اختيار المنصة الأكثر ارتفاعاً (أبعد منصة)
-                if not targetPad then
-                    local maxY = -math.huge
-                    for _, obj in pairs(workspace:GetDescendants()) do
-                        if obj:IsA("BasePart") and (obj.Name:lower():find("win") or obj.Name:lower():find("end")) then
-                            if obj.Position.Y > maxY then
-                                maxY = obj.Position.Y
-                                targetPad = obj
-                            end
-                        end
-                    end
-                end
-
-                if targetPad then
-                    hrp.CFrame = targetPad.CFrame + Vector3.new(0, 3, 0)
-                    if firetouchinterest then
-                        firetouchinterest(hrp, targetPad, 0)
-                        task.wait(0.05)
-                        firetouchinterest(hrp, targetPad, 1)
-                    end
-                end
-            end)
-        end
-    end)
-end)
-
-local GodToggle = Tabs.AutoFarm:AddToggle("Godmode", { Title = "Godmode (Anti-Kill/Monster)", Default = false })
-GodToggle:OnChanged(function(Value)
-    _G.Godmode = Value
-    task.spawn(function()
-        while _G.Godmode do
-            task.wait(0.2)
-            pcall(function()
                 local char = game.Players.LocalPlayer.Character
-                if char:FindFirstChild("Humanoid") then
+                if char and char:FindFirstChild("Humanoid") then
                     char.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
-                    char.Humanoid.Health = char.Humanoid.MaxHealth
+                    if char.Humanoid.Health < char.Humanoid.MaxHealth then
+                        char.Humanoid.Health = char.Humanoid.MaxHealth
+                    end
                 end
                 for _, p in pairs(workspace:GetDescendants()) do
-                    if p:IsA("BasePart") and (p.Name:lower():find("kill") or p.Name:lower():find("monster") or p.Name:lower():find("npc")) then
+                    if p:IsA("BasePart") and (p.Name:lower():find("kill") or p.Name:lower():find("boss") or p.Name:lower():find("lava")) then
                         p.CanTouch = false
                     end
                 end
             end)
         end
     end)
-end)
 
--- [ TAB: GAMEPASSES - سرعة الآلات الوهمية بدون طلب شراء ]
-Tabs.Gamepasses:AddSection("Treadmills Speed Boost")
-
-local CustomSpeedVal = 16
-Tabs.Gamepasses:AddInput("CustomSpeedInput", {
-    Title = "Treadmill Speed Multiplier",
-    Default = "150",
-    Numeric = true,
-    Callback = function(Value)
-        CustomSpeedVal = tonumber(Value) or 16
-    end
-})
-
-local FakeTreadmillToggle = Tabs.Gamepasses:AddToggle("FakeTreadmills", { Title = "Enable Treadmill Speed Bypass", Default = false })
-FakeTreadmillToggle:OnChanged(function(Value)
-    _G.FakeTreadmills = Value
+    -- التفريم
     task.spawn(function()
-        while _G.FakeTreadmills do
-            task.wait(0.1)
+        while _G.InstantWin do
+            task.wait(0.05)
             pcall(function()
-                local hum = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-                if hum then
-                    hum.WalkSpeed = CustomSpeedVal
+                local player = game.Players.LocalPlayer
+                local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                if not hrp then return end
+
+                local winPad = nil
+                for _, v in pairs(workspace:GetDescendants()) do
+                    if v:IsA("BasePart") and (v.Name:lower():find("win") or v.Name:lower():find("endpad")) then
+                        if not v:IsDescendantOf(player.Character) then
+                            winPad = v
+                            break
+                        end
+                    end
+                end
+
+                if winPad then
+                    hrp.CFrame = winPad.CFrame + Vector3.new(0, 3, 0)
+                    if firetouchinterest then
+                        firetouchinterest(hrp, winPad, 0)
+                        task.wait(0.02)
+                        firetouchinterest(hrp, winPad, 1)
+                    end
                 end
             end)
         end
     end)
 end)
+
+-- [ TAB: GAMEPASSES - زر التفعيل المباشر للقيم باس ]
+Tabs.Gamepasses:AddSection("Gamepass Unlocker")
+
+Tabs.Gamepasses:AddButton({
+    Title = "Unlock All Treadmills & VIP",
+    Callback = function()
+        pcall(function()
+            for _, v in pairs(workspace:GetDescendants()) do
+                if v:IsA("BasePart") then
+                    local name = v.Name:lower()
+                    if name:find("vip") or name:find("treadmill") or name:find("gate") or name:find("door") then
+                        v.CanCollide = false
+                        v.Transparency = 1
+                    end
+                end
+            end
+        end)
+    end
+})
 
 Window:SelectTab(1)
