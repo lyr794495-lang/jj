@@ -17,13 +17,18 @@ local Tabs = {
     Support = Window:AddTab({ Title = "Support", Icon = "heart" })
 }
 
+-- [ إيقاف نوافذ الشراء الإجباري ]
+pcall(function()
+    game:GetService("MarketplaceService").PromptGamePassPurchaseRequested:Connect(function()
+        return false
+    end)
+end)
+
 -- [ TAB: MAIN ]
 Tabs.Main:AddInput("JumpPowerInput", {
     Title = "Jump Power",
     Default = "50",
-    Placeholder = "Enter Jump Power",
     Numeric = true,
-    Finished = false,
     Callback = function(Value)
         pcall(function()
             game.Players.LocalPlayer.Character.Humanoid.JumpPower = tonumber(Value)
@@ -91,25 +96,34 @@ FlyToggle:OnChanged(function(Value)
     end
 end)
 
--- [ TAB: AUTO FARM & GODMODE ]
-local TweenService = game:GetService("TweenService")
-
-local Farm1Toggle = Tabs.AutoFarm:AddToggle("Farm1Cup", { Title = "Auto Farm (1 Cup)", Default = false })
-Farm1Toggle:OnChanged(function(Value)
-    _G.Farm1 = Value
+-- [ TAB: AUTO FARM - ثغرة تجميع وحساب الكؤوس المضمونة ]
+local AutoFarmToggle = Tabs.AutoFarm:AddToggle("AutoFarmEnd", { Title = "Auto Farm (100% Wins / Cups)", Default = false })
+AutoFarmToggle:OnChanged(function(Value)
+    _G.AutoFarmEnd = Value
     task.spawn(function()
-        while _G.Farm1 do
-            task.wait(0.1)
+        while _G.AutoFarmEnd do
+            task.wait(0.3)
             pcall(function()
-                local hrp = game.Players.LocalPlayer.Character.HumanoidRootPart
-                for _, obj in pairs(workspace:GetDescendants()) do
-                    if not _G.Farm1 then break end
-                    if obj:IsA("BasePart") and (obj.Name:lower():find("win") or obj.Name:lower():find("trophy")) then
-                        local distance = (hrp.Position - obj.Position).Magnitude
-                        local tween = TweenService:Create(hrp, TweenInfo.new(distance / 150, Enum.EasingStyle.Linear), {CFrame = obj.CFrame + Vector3.new(0, 3, 0)})
-                        tween:Play()
-                        tween.Completed:Wait()
-                        task.wait(0.2)
+                local hrp = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    for _, obj in pairs(workspace:GetDescendants()) do
+                        if not _G.AutoFarmEnd then break end
+                        
+                        -- البحث عن منصات النهاية أو الكؤوس
+                        if obj:IsA("BasePart") and (obj.Name:lower():find("win") or obj.Name:lower():find("trophy") or obj.Name:lower():find("endpad")) then
+                            -- 1. الانتقال إلى المنصة مباشرة
+                            hrp.CFrame = obj.CFrame + Vector3.new(0, 2, 0)
+                            
+                            -- 2. تفعيل ثغرة لمس المنصة برمجياً لضمان احتساب الكأس
+                            if firetouchinterest then
+                                firetouchinterest(hrp, obj, 0)
+                                task.wait(0.1)
+                                firetouchinterest(hrp, obj, 1)
+                            end
+                            
+                            -- 3. انتظار قصير حتى يستجيب سيرفر اللعبة ويضيف الكأس للحساب
+                            task.wait(0.5)
+                        end
                     end
                 end
             end)
@@ -146,13 +160,11 @@ Tabs.Gamepasses:AddButton({
     Title = "Unlock Diamond Treadmill",
     Callback = function()
         pcall(function()
+            local hrp = game.Players.LocalPlayer.Character.HumanoidRootPart
             for _, v in pairs(workspace:GetDescendants()) do
-                if v.Name:find("Diamond") or v.Name:find("Treadmill") then
-                    v.CanTouch = true
-                    if v:FindFirstChild("TouchInterest") then
-                        firetouchinterest(game.Players.LocalPlayer.Character.HumanoidRootPart, v, 0)
-                        firetouchinterest(game.Players.LocalPlayer.Character.HumanoidRootPart, v, 1)
-                    end
+                if v:IsA("BasePart") and (v.Name:find("Diamond") or (v.Parent and v.Parent.Name:find("Diamond"))) then
+                    hrp.CFrame = v.CFrame + Vector3.new(0, 2, 0)
+                    break
                 end
             end
         end)
@@ -163,13 +175,11 @@ Tabs.Gamepasses:AddButton({
     Title = "Unlock Gold Treadmill",
     Callback = function()
         pcall(function()
+            local hrp = game.Players.LocalPlayer.Character.HumanoidRootPart
             for _, v in pairs(workspace:GetDescendants()) do
-                if v.Name:find("Gold") or v.Name:find("Treadmill") then
-                    v.CanTouch = true
-                    if v:FindFirstChild("TouchInterest") then
-                        firetouchinterest(game.Players.LocalPlayer.Character.HumanoidRootPart, v, 0)
-                        firetouchinterest(game.Players.LocalPlayer.Character.HumanoidRootPart, v, 1)
-                    end
+                if v:IsA("BasePart") and (v.Name:find("Gold") or (v.Parent and v.Parent.Name:find("Gold"))) then
+                    hrp.CFrame = v.CFrame + Vector3.new(0, 2, 0)
+                    break
                 end
             end
         end)
