@@ -1,234 +1,190 @@
--- إشعار التحديث
-game:GetService("StarterGui"):SetCore("SendNotification", {
-    Title = "Clover Hub",
-    Text = "تم تحديث المراحل والـ Godmode ضد الوحوش بنجاح!",
-    Duration = 4
+local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+
+local Window = Fluent:CreateWindow({
+    Title = "ARASAKA Inc.",
+    SubTitle = "Speed Keyboard Escape",
+    TabWidth = 160,
+    Size = UDim2.fromOffset(580, 460),
+    Acrylic = false,
+    Theme = "Dark",
+    MinimizeKey = Enum.KeyCode.LeftControl
 })
 
-local ScreenGui = Instance.new("ScreenGui")
-local MainFrame = Instance.new("Frame")
-local UICorner = Instance.new("UICorner")
-local Title = Instance.new("TextLabel")
+local Tabs = {
+    Main = Window:AddTab({ Title = "Main", Icon = "user" }),
+    AutoFarm = Window:AddTab({ Title = "Auto Farm", Icon = "zap" }),
+    Gamepasses = Window:AddTab({ Title = "Gamepasses", Icon = "star" }),
+    Support = Window:AddTab({ Title = "Support", Icon = "heart" })
+}
 
-local Farm1CupBtn = Instance.new("TextButton")
-local UICorner1 = Instance.new("UICorner")
+-- [ TAB: MAIN ]
+Tabs.Main:AddInput("JumpPowerInput", {
+    Title = "Jump Power",
+    Default = "50",
+    Placeholder = "Enter Jump Power",
+    Numeric = true,
+    Finished = false,
+    Callback = function(Value)
+        pcall(function()
+            game.Players.LocalPlayer.Character.Humanoid.JumpPower = tonumber(Value)
+        end)
+    end
+})
 
-local Farm3CupsBtn = Instance.new("TextButton")
-local UICorner2 = Instance.new("UICorner")
-
-local GodModeBtn = Instance.new("TextButton")
-local UICorner3 = Instance.new("UICorner")
-
-local FlyBtn = Instance.new("TextButton")
-local UICorner4 = Instance.new("UICorner")
-
-ScreenGui.Parent = game.CoreGui
-ScreenGui.Name = "CloverHubGUI"
-
-MainFrame.Parent = ScreenGui
-MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-MainFrame.Position = UDim2.new(0.5, -130, 0.35, -130)
-MainFrame.Size = UDim2.new(0, 260, 0, 320)
-MainFrame.Active = true
-MainFrame.Draggable = true
-UICorner.Parent = MainFrame
-
-Title.Parent = MainFrame
-Title.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-Title.Size = UDim2.new(1, 0, 0, 40)
-Title.Font = Enum.Font.GothamBold
-Title.Text = "Speed Keyboard Escape"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.TextSize = 13
-
--- [ 1. تفريم مرحلة 1 كأس ]
-Farm1CupBtn.Parent = MainFrame
-Farm1CupBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 127)
-Farm1CupBtn.Position = UDim2.new(0.08, 0, 0.16, 0)
-Farm1CupBtn.Size = UDim2.new(0.84, 0, 0, 40)
-Farm1CupBtn.Font = Enum.Font.GothamBold
-Farm1CupBtn.Text = "تفريم 1 كأس (OFF)"
-Farm1CupBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-Farm1CupBtn.TextSize = 12
-UICorner1.Parent = Farm1CupBtn
-
--- [ 2. تفريم مرحلة 3 كؤوس ]
-Farm3CupsBtn.Parent = MainFrame
-Farm3CupsBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 200)
-Farm3CupsBtn.Position = UDim2.new(0.08, 0, 0.31, 0)
-Farm3CupsBtn.Size = UDim2.new(0.84, 0, 0, 40)
-Farm3CupsBtn.Font = Enum.Font.GothamBold
-Farm3CupsBtn.Text = "تفريم 3 كؤوس (OFF)"
-Farm3CupsBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-Farm3CupsBtn.TextSize = 12
-UICorner2.Parent = Farm3CupsBtn
-
--- دوال التفريم والمشي المضبوط
-local farm1Active = false
-local farm3Active = false
-
-local function startSmoothFarm(targetType)
-    local TweenService = game:GetService("TweenService")
-    task.spawn(function()
-        while (targetType == 1 and farm1Active) or (targetType == 3 and farm3Active) do
-            task.wait(0.1)
-            pcall(function()
-                local char = game.Players.LocalPlayer.Character
-                local hrp = char and char:FindFirstChild("HumanoidRootPart")
-                if hrp then
-                    for _, obj in pairs(workspace:GetDescendants()) do
-                        if (targetType == 1 and not farm1Active) or (targetType == 3 and not farm3Active) then break end
-                        
-                        -- التمييز بين خط البداية ومنصات الفوز/الكؤوس
-                        if obj:IsA("BasePart") and (obj.Name:lower():find("win") or obj.Name:lower():find("trophy") or obj.Name:lower():find("cup")) then
-                            local isMatch = false
-                            if targetType == 1 and (obj.Name:find("1") or not obj.Name:find("3")) then
-                                isMatch = true
-                            elseif targetType == 3 and (obj.Name:find("3") or obj.Parent.Name:find("3")) then
-                                isMatch = true
-                            end
-                            
-                            if isMatch then
-                                local targetCFrame = obj.CFrame + Vector3.new(0, 3, 0)
-                                local distance = (hrp.Position - targetCFrame.Position).Magnitude
-                                local tweenInfo = TweenInfo.new(distance / 160, Enum.EasingStyle.Linear)
-                                local tween = TweenService:Create(hrp, tweenInfo, {CFrame = targetCFrame})
-                                tween:Play()
-                                tween.Completed:Wait()
-                                task.wait(0.2)
-                            end
-                        end
-                    end
-                end
-            end)
-        end
+local FreezeToggle = Tabs.Main:AddToggle("FreezePosition", { Title = "Freeze Position", Default = false })
+FreezeToggle:OnChanged(function(Value)
+    pcall(function()
+        game.Players.LocalPlayer.Character.HumanoidRootPart.Anchored = Value
     end)
-end
-
-Farm1CupBtn.MouseButton1Click:Connect(function()
-    farm1Active = not farm1Active
-    farm3Active = false
-    Farm3CupsBtn.Text = "تفريم 3 كؤوس (OFF)"
-    Farm3CupsBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 200)
-
-    if farm1Active then
-        Farm1CupBtn.Text = "إيقاف 1 كأس (ON)"
-        Farm1CupBtn.BackgroundColor3 = Color3.fromRGB(255, 85, 85)
-        startSmoothFarm(1)
-    else
-        Farm1CupBtn.Text = "تفريم 1 كأس (OFF)"
-        Farm1CupBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 127)
-    end
 end)
 
-Farm3CupsBtn.MouseButton1Click:Connect(function()
-    farm3Active = not farm3Active
-    farm1Active = false
-    Farm1CupBtn.Text = "تفريم 1 كأس (OFF)"
-    Farm1CupBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 127)
-
-    if farm3Active then
-        Farm3CupsBtn.Text = "إيقاف 3 كؤوس (ON)"
-        Farm3CupsBtn.BackgroundColor3 = Color3.fromRGB(255, 85, 85)
-        startSmoothFarm(3)
-    else
-        Farm3CupsBtn.Text = "تفريم 3 كؤوس (OFF)"
-        Farm3CupsBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 200)
-    end
-end)
-
--- [ 3. ميزة عدم الموت المتقدمة ضد الوحوش واللمس ]
-GodModeBtn.Parent = MainFrame
-GodModeBtn.BackgroundColor3 = Color3.fromRGB(170, 85, 255)
-GodModeBtn.Position = UDim2.new(0.08, 0, 0.46, 0)
-GodModeBtn.Size = UDim2.new(0.84, 0, 0, 40)
-GodModeBtn.Font = Enum.Font.GothamBold
-GodModeBtn.Text = "تفعيل عدم الموت (Godmode)"
-GodModeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-GodModeBtn.TextSize = 12
-UICorner3.Parent = GodModeBtn
-
-local godModeActive = false
-GodModeBtn.MouseButton1Click:Connect(function()
-    godModeActive = not godModeActive
-    if godModeActive then
-        GodModeBtn.Text = "إيقاف عدم الموت (ON)"
-        GodModeBtn.BackgroundColor3 = Color3.fromRGB(255, 85, 85)
-    else
-        GodModeBtn.Text = "تفعيل عدم الموت (Godmode)"
-        GodModeBtn.BackgroundColor3 = Color3.fromRGB(170, 85, 255)
-    end
-
+local NoclipToggle = Tabs.Main:AddToggle("Noclip", { Title = "Noclip", Default = false })
+NoclipToggle:OnChanged(function(Value)
+    _G.Noclip = Value
     task.spawn(function()
-        while godModeActive do
-            task.wait(0.15)
+        while _G.Noclip do
+            task.wait()
             pcall(function()
-                local char = game.Players.LocalPlayer.Character
-                if char then
-                    if char:FindFirstChild("Humanoid") then
-                        char.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
-                        char.Humanoid.Health = char.Humanoid.MaxHealth
-                    end
-                    -- إيقاف الاصطدام مع الوحوش والمجسمات القاتلة
-                    for _, part in pairs(workspace:GetDescendants()) do
-                        if part:IsA("BasePart") then
-                            if part.Name:lower():find("kill") or part.Name:lower():find("monster") or part.Name:lower():find("npc") or part.Name:lower():find("lava") or part.Name:lower():find("cup") then
-                                part.CanTouch = false
-                            end
-                        end
-                    end
+                for _, v in pairs(game.Players.LocalPlayer.Character:GetChildren()) do
+                    if v:IsA("BasePart") then v.CanCollide = false end
                 end
             end)
         end
     end)
 end)
 
--- [ 4. زر الطيران السريع ]
-FlyBtn.Parent = MainFrame
-FlyBtn.BackgroundColor3 = Color3.fromRGB(85, 170, 255)
-FlyBtn.Position = UDim2.new(0.08, 0, 0.61, 0)
-FlyBtn.Size = UDim2.new(0.84, 0, 0, 40)
-FlyBtn.Font = Enum.Font.GothamBold
-FlyBtn.Text = "تشغيل الطيران (OFF)"
-FlyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-FlyBtn.TextSize = 12
-UICorner4.Parent = FlyBtn
+Tabs.Main:AddSection("Fly Settings")
 
-local flying = false
-local bg, bv
+local FlySpeedVal = 50
+local FlyToggle = Tabs.Main:AddToggle("FlyEnabled", { Title = "Fly Enabled", Default = false })
 
-FlyBtn.MouseButton1Click:Connect(function()
-    flying = not flying
-    local char = game.Players.LocalPlayer.Character
-    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-    local hrp = char.HumanoidRootPart
+Tabs.Main:AddInput("FlySpeedInput", {
+    Title = "Fly Speed",
+    Default = "50",
+    Numeric = true,
+    Callback = function(Value) FlySpeedVal = tonumber(Value) or 50 end
+})
 
-    if flying then
-        FlyBtn.Text = "إيقاف الطيران (ON)"
-        FlyBtn.BackgroundColor3 = Color3.fromRGB(255, 85, 85)
-        
-        bv = Instance.new("BodyVelocity")
-        bv.Velocity = Vector3.new(0, 0, 0)
+local bv, bg
+FlyToggle:OnChanged(function(Value)
+    _G.Flying = Value
+    local hrp = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    if _G.Flying then
+        bv = Instance.new("BodyVelocity", hrp)
         bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
-        bv.Parent = hrp
-
-        bg = Instance.new("BodyGyro")
+        bg = Instance.new("BodyGyro", hrp)
         bg.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
-        bg.CFrame = hrp.CFrame
-        bg.Parent = hrp
 
         task.spawn(function()
-            while flying and task.wait() do
+            while _G.Flying and task.wait() do
                 local cam = workspace.CurrentCamera
-                local moveDir = char.Humanoid.MoveDirection
-                bv.Velocity = (cam.CFrame.LookVector * (moveDir.Z * 80)) + (cam.CFrame.RightVector * (moveDir.X * 80))
+                local moveDir = game.Players.LocalPlayer.Character.Humanoid.MoveDirection
+                bv.Velocity = (cam.CFrame.LookVector * (moveDir.Z * FlySpeedVal)) + (cam.CFrame.RightVector * (moveDir.X * FlySpeedVal))
                 bg.CFrame = cam.CFrame
             end
         end)
     else
-        FlyBtn.Text = "تشغيل الطيران (OFF)"
-        FlyBtn.BackgroundColor3 = Color3.fromRGB(85, 170, 255)
         if bv then bv:Destroy() end
         if bg then bg:Destroy() end
     end
 end)
+
+-- [ TAB: AUTO FARM & GODMODE ]
+local TweenService = game:GetService("TweenService")
+
+local Farm1Toggle = Tabs.AutoFarm:AddToggle("Farm1Cup", { Title = "Auto Farm (1 Cup)", Default = false })
+Farm1Toggle:OnChanged(function(Value)
+    _G.Farm1 = Value
+    task.spawn(function()
+        while _G.Farm1 do
+            task.wait(0.1)
+            pcall(function()
+                local hrp = game.Players.LocalPlayer.Character.HumanoidRootPart
+                for _, obj in pairs(workspace:GetDescendants()) do
+                    if not _G.Farm1 then break end
+                    if obj:IsA("BasePart") and (obj.Name:lower():find("win") or obj.Name:lower():find("trophy")) then
+                        local distance = (hrp.Position - obj.Position).Magnitude
+                        local tween = TweenService:Create(hrp, TweenInfo.new(distance / 150, Enum.EasingStyle.Linear), {CFrame = obj.CFrame + Vector3.new(0, 3, 0)})
+                        tween:Play()
+                        tween.Completed:Wait()
+                        task.wait(0.2)
+                    end
+                end
+            end)
+        end
+    end)
+end)
+
+local GodToggle = Tabs.AutoFarm:AddToggle("Godmode", { Title = "Godmode (Anti-Kill/Monster)", Default = false })
+GodToggle:OnChanged(function(Value)
+    _G.Godmode = Value
+    task.spawn(function()
+        while _G.Godmode do
+            task.wait(0.2)
+            pcall(function()
+                local char = game.Players.LocalPlayer.Character
+                if char:FindFirstChild("Humanoid") then
+                    char.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
+                    char.Humanoid.Health = char.Humanoid.MaxHealth
+                end
+                for _, p in pairs(workspace:GetDescendants()) do
+                    if p:IsA("BasePart") and (p.Name:lower():find("kill") or p.Name:lower():find("monster") or p.Name:lower():find("npc")) then
+                        p.CanTouch = false
+                    end
+                end
+            end)
+        end
+    end)
+end)
+
+-- [ TAB: GAMEPASSES ]
+Tabs.Gamepasses:AddSection("Gamepass Bypasses")
+
+Tabs.Gamepasses:AddButton({
+    Title = "Unlock Diamond Treadmill",
+    Callback = function()
+        pcall(function()
+            for _, v in pairs(workspace:GetDescendants()) do
+                if v.Name:find("Diamond") or v.Name:find("Treadmill") then
+                    v.CanTouch = true
+                    if v:FindFirstChild("TouchInterest") then
+                        firetouchinterest(game.Players.LocalPlayer.Character.HumanoidRootPart, v, 0)
+                        firetouchinterest(game.Players.LocalPlayer.Character.HumanoidRootPart, v, 1)
+                    end
+                end
+            end
+        end)
+    end
+})
+
+Tabs.Gamepasses:AddButton({
+    Title = "Unlock Gold Treadmill",
+    Callback = function()
+        pcall(function()
+            for _, v in pairs(workspace:GetDescendants()) do
+                if v.Name:find("Gold") or v.Name:find("Treadmill") then
+                    v.CanTouch = true
+                    if v:FindFirstChild("TouchInterest") then
+                        firetouchinterest(game.Players.LocalPlayer.Character.HumanoidRootPart, v, 0)
+                        firetouchinterest(game.Players.LocalPlayer.Character.HumanoidRootPart, v, 1)
+                    end
+                end
+            end
+        end)
+    end
+})
+
+Tabs.Gamepasses:AddSection("Rewards")
+Tabs.Gamepasses:AddButton({
+    Title = "Claim Group Reward",
+    Callback = function()
+        pcall(function()
+            local remote = game:GetService("ReplicatedStorage"):FindFirstChild("ClaimGroupReward", true)
+            if remote then remote:FireServer() end
+        end)
+    end
+})
+
+Window:SelectTab(1)
