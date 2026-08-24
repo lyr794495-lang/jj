@@ -1,7 +1,7 @@
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
 local Window = Fluent:CreateWindow({
-    Title = "ARASAKA Inc.",
+    Title = "clover.",
     SubTitle = "Speed Keyboard Escape",
     TabWidth = 160,
     Size = UDim2.fromOffset(580, 460),
@@ -18,10 +18,10 @@ local Tabs = {
 }
 
 -- [ إيقاف نوافذ الشراء الإجباري ]
+local MarketplaceService = game:GetService("MarketplaceService")
 pcall(function()
-    game:GetService("MarketplaceService").PromptGamePassPurchaseRequested:Connect(function()
-        return false
-    end)
+    MarketplaceService.PromptGamePassPurchaseRequested:Connect(function() return false end)
+    MarketplaceService.PromptPurchaseRequested:Connect(function() return false end)
 end)
 
 -- [ TAB: MAIN ]
@@ -96,34 +96,61 @@ FlyToggle:OnChanged(function(Value)
     end
 end)
 
--- [ TAB: AUTO FARM - ثغرة تجميع وحساب الكؤوس المضمونة ]
-local AutoFarmToggle = Tabs.AutoFarm:AddToggle("AutoFarmEnd", { Title = "Auto Farm (100% Wins / Cups)", Default = false })
-AutoFarmToggle:OnChanged(function(Value)
-    _G.AutoFarmEnd = Value
+-- [ TAB: AUTO FARM - الانتقال لأعلى مرحلة (+150K Wins) ]
+local AutoWalkToggle = Tabs.AutoFarm:AddToggle("AutoWalkSpeed", { Title = "Auto Walk (Gain Speed)", Default = false })
+AutoWalkToggle:OnChanged(function(Value)
+    _G.AutoWalk = Value
     task.spawn(function()
-        while _G.AutoFarmEnd do
-            task.wait(0.3)
+        while _G.AutoWalk do
+            task.wait(0.05)
             pcall(function()
-                local hrp = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-                if hrp then
-                    for _, obj in pairs(workspace:GetDescendants()) do
-                        if not _G.AutoFarmEnd then break end
-                        
-                        -- البحث عن منصات النهاية أو الكؤوس
-                        if obj:IsA("BasePart") and (obj.Name:lower():find("win") or obj.Name:lower():find("trophy") or obj.Name:lower():find("endpad")) then
-                            -- 1. الانتقال إلى المنصة مباشرة
-                            hrp.CFrame = obj.CFrame + Vector3.new(0, 2, 0)
-                            
-                            -- 2. تفعيل ثغرة لمس المنصة برمجياً لضمان احتساب الكأس
-                            if firetouchinterest then
-                                firetouchinterest(hrp, obj, 0)
-                                task.wait(0.1)
-                                firetouchinterest(hrp, obj, 1)
-                            end
-                            
-                            -- 3. انتظار قصير حتى يستجيب سيرفر اللعبة ويضيف الكأس للحساب
-                            task.wait(0.5)
+                local hum = game.Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+                if hum then
+                    hum:Move(Vector3.new(0, 0, -1), true)
+                end
+            end)
+        end
+    end)
+end)
+
+local InstantWinToggle = Tabs.AutoFarm:AddToggle("InstantWin", { Title = "INSTANT WIN (+150K Wins Pad)", Default = false })
+InstantWinToggle:OnChanged(function(Value)
+    _G.InstantWin = Value
+    task.spawn(function()
+        while _G.InstantWin do
+            task.wait(0.05)
+            pcall(function()
+                local player = game.Players.LocalPlayer
+                local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                if not hrp then return end
+
+                -- البحث عن أبعد وأعلى منصة فوز (آخر مرحلة +150K Wins)
+                local maxWinPad = nil
+                local maxDist = -math.huge
+
+                for _, obj in pairs(workspace:GetDescendants()) do
+                    if obj:IsA("BasePart") and (obj.Name:lower():find("win") or obj.Name:lower():find("trophy") or obj.Name:lower():find("endpad")) then
+                        -- اختيار أعلى منصة من حيث الارتفاع أو المسافة
+                        local posVal = obj.Position.Z + obj.Position.Y
+                        if posVal > maxDist then
+                            maxDist = posVal
+                            maxWinPad = obj
                         end
+                    end
+                end
+
+                if maxWinPad then
+                    hrp.CFrame = maxWinPad.CFrame + Vector3.new(0, 3, 0)
+                    if firetouchinterest then
+                        firetouchinterest(hrp, maxWinPad, 0)
+                        task.wait(0.05)
+                        firetouchinterest(hrp, maxWinPad, 1)
+                    end
+                    
+                    task.wait(0.1)
+                    local spawn = workspace:FindFirstChild("SpawnLocation", true)
+                    if spawn then
+                        hrp.CFrame = spawn.CFrame + Vector3.new(0, 3, 0)
                     end
                 end
             end)
@@ -154,47 +181,48 @@ GodToggle:OnChanged(function(Value)
 end)
 
 -- [ TAB: GAMEPASSES ]
-Tabs.Gamepasses:AddSection("Gamepass Bypasses")
+Tabs.Gamepasses:AddSection("Treadmills Bypass & Boost")
 
-Tabs.Gamepasses:AddButton({
-    Title = "Unlock Diamond Treadmill",
-    Callback = function()
-        pcall(function()
-            local hrp = game.Players.LocalPlayer.Character.HumanoidRootPart
-            for _, v in pairs(workspace:GetDescendants()) do
-                if v:IsA("BasePart") and (v.Name:find("Diamond") or (v.Parent and v.Parent.Name:find("Diamond"))) then
-                    hrp.CFrame = v.CFrame + Vector3.new(0, 2, 0)
-                    break
+local AutoDiamondTreadmill = Tabs.Gamepasses:AddToggle("AutoDiamond", { Title = "Auto Diamond Treadmill Speed (X150)", Default = false })
+AutoDiamondTreadmill:OnChanged(function(Value)
+    _G.AutoDiamond = Value
+    task.spawn(function()
+        while _G.AutoDiamond do
+            task.wait(0.1)
+            pcall(function()
+                local hrp = game.Players.LocalPlayer.Character.HumanoidRootPart
+                for _, v in pairs(workspace:GetDescendants()) do
+                    if v:IsA("BasePart") and (v.Name:find("Diamond") or (v.Parent and v.Parent.Name:find("Diamond"))) then
+                        if firetouchinterest then
+                            firetouchinterest(hrp, v, 0)
+                            firetouchinterest(hrp, v, 1)
+                        end
+                    end
                 end
-            end
-        end)
-    end
-})
+            end)
+        end
+    end)
+end)
 
-Tabs.Gamepasses:AddButton({
-    Title = "Unlock Gold Treadmill",
-    Callback = function()
-        pcall(function()
-            local hrp = game.Players.LocalPlayer.Character.HumanoidRootPart
-            for _, v in pairs(workspace:GetDescendants()) do
-                if v:IsA("BasePart") and (v.Name:find("Gold") or (v.Parent and v.Parent.Name:find("Gold"))) then
-                    hrp.CFrame = v.CFrame + Vector3.new(0, 2, 0)
-                    break
+local AutoGoldTreadmill = Tabs.Gamepasses:AddToggle("AutoGold", { Title = "Auto Gold Treadmill Speed (X50)", Default = false })
+AutoGoldTreadmill:OnChanged(function(Value)
+    _G.AutoGold = Value
+    task.spawn(function()
+        while _G.AutoGold do
+            task.wait(0.1)
+            pcall(function()
+                local hrp = game.Players.LocalPlayer.Character.HumanoidRootPart
+                for _, v in pairs(workspace:GetDescendants()) do
+                    if v:IsA("BasePart") and (v.Name:find("Gold") or (v.Parent and v.Parent.Name:find("Gold"))) then
+                        if firetouchinterest then
+                            firetouchinterest(hrp, v, 0)
+                            firetouchinterest(hrp, v, 1)
+                        end
+                    end
                 end
-            end
-        end)
-    end
-})
-
-Tabs.Gamepasses:AddSection("Rewards")
-Tabs.Gamepasses:AddButton({
-    Title = "Claim Group Reward",
-    Callback = function()
-        pcall(function()
-            local remote = game:GetService("ReplicatedStorage"):FindFirstChild("ClaimGroupReward", true)
-            if remote then remote:FireServer() end
-        end)
-    end
-})
+            end)
+        end
+    end)
+end)
 
 Window:SelectTab(1)
