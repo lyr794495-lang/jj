@@ -1,7 +1,7 @@
 -- إشعار التحديث
 game:GetService("StarterGui"):SetCore("SendNotification", {
     Title = "Clover Hub",
-    Text = "تم تفعيل المشي التلقائي و Godmode بنجاح!",
+    Text = "تم تحديث المراحل والـ Godmode ضد الوحوش بنجاح!",
     Duration = 4
 })
 
@@ -9,10 +9,16 @@ local ScreenGui = Instance.new("ScreenGui")
 local MainFrame = Instance.new("Frame")
 local UICorner = Instance.new("UICorner")
 local Title = Instance.new("TextLabel")
-local AutoWalkBtn = Instance.new("TextButton")
+
+local Farm1CupBtn = Instance.new("TextButton")
+local UICorner1 = Instance.new("UICorner")
+
+local Farm3CupsBtn = Instance.new("TextButton")
 local UICorner2 = Instance.new("UICorner")
+
 local GodModeBtn = Instance.new("TextButton")
 local UICorner3 = Instance.new("UICorner")
+
 local FlyBtn = Instance.new("TextButton")
 local UICorner4 = Instance.new("UICorner")
 
@@ -21,8 +27,8 @@ ScreenGui.Name = "CloverHubGUI"
 
 MainFrame.Parent = ScreenGui
 MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-MainFrame.Position = UDim2.new(0.5, -130, 0.4, -120)
-MainFrame.Size = UDim2.new(0, 260, 0, 270)
+MainFrame.Position = UDim2.new(0.5, -130, 0.35, -130)
+MainFrame.Size = UDim2.new(0, 260, 0, 320)
 MainFrame.Active = true
 MainFrame.Draggable = true
 UICorner.Parent = MainFrame
@@ -35,63 +41,107 @@ Title.Text = "Speed Keyboard Escape"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.TextSize = 13
 
--- [ 1. زر المشي التلقائي السريع نحو خط النهاية ]
-AutoWalkBtn.Parent = MainFrame
-AutoWalkBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 127)
-AutoWalkBtn.Position = UDim2.new(0.08, 0, 0.2, 0)
-AutoWalkBtn.Size = UDim2.new(0.84, 0, 0, 45)
-AutoWalkBtn.Font = Enum.Font.GothamBold
-AutoWalkBtn.Text = "مشي تلقائي سريع للكأس (OFF)"
-AutoWalkBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-AutoWalkBtn.TextSize = 12
-UICorner2.Parent = AutoWalkBtn
+-- [ 1. تفريم مرحلة 1 كأس ]
+Farm1CupBtn.Parent = MainFrame
+Farm1CupBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 127)
+Farm1CupBtn.Position = UDim2.new(0.08, 0, 0.16, 0)
+Farm1CupBtn.Size = UDim2.new(0.84, 0, 0, 40)
+Farm1CupBtn.Font = Enum.Font.GothamBold
+Farm1CupBtn.Text = "تفريم 1 كأس (OFF)"
+Farm1CupBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+Farm1CupBtn.TextSize = 12
+UICorner1.Parent = Farm1CupBtn
 
-local autoWalkActive = false
-AutoWalkBtn.MouseButton1Click:Connect(function()
-    autoWalkActive = not autoWalkActive
-    if autoWalkActive then
-        AutoWalkBtn.Text = "إيقاف المشي التلقائي (ON)"
-        AutoWalkBtn.BackgroundColor3 = Color3.fromRGB(255, 85, 85)
-    else
-        AutoWalkBtn.Text = "مشي تلقائي سريع للكأس (OFF)"
-        AutoWalkBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 127)
-    end
+-- [ 2. تفريم مرحلة 3 كؤوس ]
+Farm3CupsBtn.Parent = MainFrame
+Farm3CupsBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 200)
+Farm3CupsBtn.Position = UDim2.new(0.08, 0, 0.31, 0)
+Farm3CupsBtn.Size = UDim2.new(0.84, 0, 0, 40)
+Farm3CupsBtn.Font = Enum.Font.GothamBold
+Farm3CupsBtn.Text = "تفريم 3 كؤوس (OFF)"
+Farm3CupsBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+Farm3CupsBtn.TextSize = 12
+UICorner2.Parent = Farm3CupsBtn
 
+-- دوال التفريم والمشي المضبوط
+local farm1Active = false
+local farm3Active = false
+
+local function startSmoothFarm(targetType)
+    local TweenService = game:GetService("TweenService")
     task.spawn(function()
-        local TweenService = game:GetService("TweenService")
-        while autoWalkActive do
+        while (targetType == 1 and farm1Active) or (targetType == 3 and farm3Active) do
             task.wait(0.1)
             pcall(function()
                 local char = game.Players.LocalPlayer.Character
                 local hrp = char and char:FindFirstChild("HumanoidRootPart")
                 if hrp then
-                    -- البحث عن منصة Win أو الكأس المحددة
                     for _, obj in pairs(workspace:GetDescendants()) do
-                        if not autoWalkActive then break end
-                        if obj:IsA("BasePart") and (obj.Name == "Win" or obj.Name == "WinPad" or obj.Name:lower():find("win")) then
-                            local targetCFrame = obj.CFrame + Vector3.new(0, 3, 0)
-                            local distance = (hrp.Position - targetCFrame.Position).Magnitude
+                        if (targetType == 1 and not farm1Active) or (targetType == 3 and not farm3Active) then break end
+                        
+                        -- التمييز بين خط البداية ومنصات الفوز/الكؤوس
+                        if obj:IsA("BasePart") and (obj.Name:lower():find("win") or obj.Name:lower():find("trophy") or obj.Name:lower():find("cup")) then
+                            local isMatch = false
+                            if targetType == 1 and (obj.Name:find("1") or not obj.Name:find("3")) then
+                                isMatch = true
+                            elseif targetType == 3 and (obj.Name:find("3") or obj.Parent.Name:find("3")) then
+                                isMatch = true
+                            end
                             
-                            -- التحرك السريع المباشر (Tween) إلى خط النهاية بدون تنقل عشوائي
-                            local speed = 150 -- سرعة التحرك
-                            local tweenInfo = TweenInfo.new(distance / speed, Enum.EasingStyle.Linear)
-                            local tween = TweenService:Create(hrp, tweenInfo, {CFrame = targetCFrame})
-                            tween:Play()
-                            tween.Completed:Wait()
-                            task.wait(0.2)
+                            if isMatch then
+                                local targetCFrame = obj.CFrame + Vector3.new(0, 3, 0)
+                                local distance = (hrp.Position - targetCFrame.Position).Magnitude
+                                local tweenInfo = TweenInfo.new(distance / 160, Enum.EasingStyle.Linear)
+                                local tween = TweenService:Create(hrp, tweenInfo, {CFrame = targetCFrame})
+                                tween:Play()
+                                tween.Completed:Wait()
+                                task.wait(0.2)
+                            end
                         end
                     end
                 end
             end)
         end
     end)
+end
+
+Farm1CupBtn.MouseButton1Click:Connect(function()
+    farm1Active = not farm1Active
+    farm3Active = false
+    Farm3CupsBtn.Text = "تفريم 3 كؤوس (OFF)"
+    Farm3CupsBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 200)
+
+    if farm1Active then
+        Farm1CupBtn.Text = "إيقاف 1 كأس (ON)"
+        Farm1CupBtn.BackgroundColor3 = Color3.fromRGB(255, 85, 85)
+        startSmoothFarm(1)
+    else
+        Farm1CupBtn.Text = "تفريم 1 كأس (OFF)"
+        Farm1CupBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 127)
+    end
 end)
 
--- [ 2. ميزة عدم الموت Godmode ]
+Farm3CupsBtn.MouseButton1Click:Connect(function()
+    farm3Active = not farm3Active
+    farm1Active = false
+    Farm1CupBtn.Text = "تفريم 1 كأس (OFF)"
+    Farm1CupBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 127)
+
+    if farm3Active then
+        Farm3CupsBtn.Text = "إيقاف 3 كؤوس (ON)"
+        Farm3CupsBtn.BackgroundColor3 = Color3.fromRGB(255, 85, 85)
+        startSmoothFarm(3)
+    else
+        Farm3CupsBtn.Text = "تفريم 3 كؤوس (OFF)"
+        Farm3CupsBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 200)
+    end
+end)
+
+-- [ 3. ميزة عدم الموت المتقدمة ضد الوحوش واللمس ]
 GodModeBtn.Parent = MainFrame
 GodModeBtn.BackgroundColor3 = Color3.fromRGB(170, 85, 255)
-GodModeBtn.Position = UDim2.new(0.08, 0, 0.45, 0)
-GodModeBtn.Size = UDim2.new(0.84, 0, 0, 45)
+GodModeBtn.Position = UDim2.new(0.08, 0, 0.46, 0)
+GodModeBtn.Size = UDim2.new(0.84, 0, 0, 40)
 GodModeBtn.Font = Enum.Font.GothamBold
 GodModeBtn.Text = "تفعيل عدم الموت (Godmode)"
 GodModeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -111,20 +161,21 @@ GodModeBtn.MouseButton1Click:Connect(function()
 
     task.spawn(function()
         while godModeActive do
-            task.wait(0.2)
+            task.wait(0.15)
             pcall(function()
                 local char = game.Players.LocalPlayer.Character
-                if char and char:FindFirstChild("Humanoid") then
-                    -- إلغاء حالات الموت والضرر
-                    char.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
-                    if char.Humanoid.Health < char.Humanoid.MaxHealth then
+                if char then
+                    if char:FindFirstChild("Humanoid") then
+                        char.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
                         char.Humanoid.Health = char.Humanoid.MaxHealth
                     end
-                end
-                -- إزالة مناطق القتل في الماب تلقائياً
-                for _, part in pairs(workspace:GetDescendants()) do
-                    if part:IsA("BasePart") and (part.Name:lower():find("kill") or part.Name:lower():find("lava") or part.Name:lower():find("void")) then
-                        part.CanTouch = false
+                    -- إيقاف الاصطدام مع الوحوش والمجسمات القاتلة
+                    for _, part in pairs(workspace:GetDescendants()) do
+                        if part:IsA("BasePart") then
+                            if part.Name:lower():find("kill") or part.Name:lower():find("monster") or part.Name:lower():find("npc") or part.Name:lower():find("lava") or part.Name:lower():find("cup") then
+                                part.CanTouch = false
+                            end
+                        end
                     end
                 end
             end)
@@ -132,11 +183,11 @@ GodModeBtn.MouseButton1Click:Connect(function()
     end)
 end)
 
--- [ 3. زر الطيران السريع ]
+-- [ 4. زر الطيران السريع ]
 FlyBtn.Parent = MainFrame
 FlyBtn.BackgroundColor3 = Color3.fromRGB(85, 170, 255)
-FlyBtn.Position = UDim2.new(0.08, 0, 0.7, 0)
-FlyBtn.Size = UDim2.new(0.84, 0, 0, 45)
+FlyBtn.Position = UDim2.new(0.08, 0, 0.61, 0)
+FlyBtn.Size = UDim2.new(0.84, 0, 0, 40)
 FlyBtn.Font = Enum.Font.GothamBold
 FlyBtn.Text = "تشغيل الطيران (OFF)"
 FlyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
