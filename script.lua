@@ -17,7 +17,7 @@ local Tabs = {
     Support = Window:AddTab({ Title = "Support", Icon = "heart" })
 }
 
--- [ إغلاق وحذف أي نافذة شراء تظهر على الشاشة فوراً ]
+-- [ إغلاق نوافذ الشراء تلقائياً ]
 local CoreGui = game:GetService("CoreGui")
 task.spawn(function()
     while task.wait(0.1) do
@@ -102,13 +102,43 @@ FlyToggle:OnChanged(function(Value)
     end
 end)
 
--- [ TAB: AUTO FARM - Instant Win + Godmode ]
-local InstantWinToggle = Tabs.AutoFarm:AddToggle("InstantWin", { Title = "INSTANT WIN (+150K Wins + Anti-Kill)", Default = false })
+-- [ TAB: AUTO FARM - إعطاء سرعة تلقائية والتفريم ]
+local AutoSpeedToggle = Tabs.AutoFarm:AddToggle("AutoAddSpeed", { Title = "Auto Add Speed (تجمع السرعة تلقائياً)", Default = false })
+AutoSpeedToggle:OnChanged(function(Value)
+    _G.AutoAddSpeed = Value
+    task.spawn(function()
+        while _G.AutoAddSpeed do
+            task.wait(0.01)
+            pcall(function()
+                -- استدعاء ريموت زيادة السرعة الخاص بالماب تلقائياً
+                local ReplicatedStorage = game:GetService("ReplicatedStorage")
+                for _, v in pairs(ReplicatedStorage:GetDescendants()) do
+                    if v:IsA("RemoteEvent") and (v.Name:lower():find("speed") or v.Name:lower():find("add") or v.Name:lower():find("treadmill") or v.Name:lower():find("walk")) then
+                        v:FireServer()
+                    end
+                end
+                -- محاكاة للمس مشايات الـ Speed في الورك سبيس
+                local hrp = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    for _, pad in pairs(workspace:GetDescendants()) do
+                        if pad:IsA("BasePart") and (pad.Name:lower():find("treadmill") or pad.Name:lower():find("speed")) then
+                            if firetouchinterest then
+                                firetouchinterest(hrp, pad, 0)
+                                firetouchinterest(hrp, pad, 1)
+                            end
+                        end
+                    end
+                end
+            end)
+        end
+    end)
+end)
+
+local InstantWinToggle = Tabs.AutoFarm:AddToggle("InstantWin", { Title = "INSTANT WIN (+150K Wins + Godmode)", Default = false })
 
 InstantWinToggle:OnChanged(function(Value)
     _G.InstantWin = Value
 
-    -- حماية عدم الموت والوحش
     task.spawn(function()
         while _G.InstantWin do
             task.wait(0.1)
@@ -129,7 +159,6 @@ InstantWinToggle:OnChanged(function(Value)
         end
     end)
 
-    -- التفريم
     task.spawn(function()
         while _G.InstantWin do
             task.wait(0.05)
@@ -161,12 +190,12 @@ InstantWinToggle:OnChanged(function(Value)
     end)
 end)
 
--- [ TAB: GAMEPASSES - تفعيل سرعة المشايات وتجاوز نافذة الشراء ]
+-- [ TAB: GAMEPASSES ]
 Tabs.Gamepasses:AddSection("Treadmills Bypass")
 
 local SpeedBoostValue = 250
 Tabs.Gamepasses:AddInput("SpeedInput", {
-    Title = "Custom Speed (Like Gamepass)",
+    Title = "Custom Speed (WalkSpeed)",
     Default = "250",
     Numeric = true,
     Callback = function(Value)
